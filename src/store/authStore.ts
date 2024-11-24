@@ -197,12 +197,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase signOut error:', error);
+      }
+      
+      // 清理状态
       set({ user: null, profile: null, isAdmin: false });
       toast.success('Successfully logged out');
     } catch (error: any) {
       console.error('Logout failed:', error);
-      toast.error('Failed to logout');
+      // 即使发生错误，也清理状态
+      set({ user: null, profile: null, isAdmin: false });
+      toast.error('Failed to logout from server, but you have been logged out locally');
     }
   },
 

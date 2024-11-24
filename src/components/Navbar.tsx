@@ -21,10 +21,15 @@ export default function Navbar() {
     setShowAuthModal(false);
   };
 
-  const handleSignOut = () => {
-    signOut();
-    navigate('/');
-    setIsMobileMenuOpen(false);
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setIsMobileMenuOpen(false);
+      navigate('/');
+    } catch (error) {
+      console.error('Sign out failed:', error);
+      setIsMobileMenuOpen(false);
+    }
   };
 
   return (
