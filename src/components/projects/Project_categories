@@ -1,0 +1,13 @@
+export const PROJECT_CATEGORIES = [
+  { id: 'productivity', label: 'Productivity', icon: '⚡' },
+  { id: 'communication', label: 'Communication', icon: '💬' },
+  { id: 'entertainment', label: 'Entertainment', icon: '🎮' },
+  { id: 'e-commerce', label: 'E-commerce', icon: '🛍️' },
+  { id: 'education', label: 'Education', icon: '📚' },
+  { id: 'social-networking', label: 'Social Networking', icon: '🤝' },
+  { id: 'health-fitness', label: 'Health & Fitness', icon: '💪' },
+  { id: 'finance', label: 'Finance', icon: '💰' },
+  { id: 'travel', label: 'Travel', icon: '✈️' },
+  { id: 'news-media', label: 'News & Media', icon: '📰' },
+  { id: 'others', label: 'Others', icon: '🔮' }
+];
