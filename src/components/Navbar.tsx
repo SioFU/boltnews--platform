@@ -1,22 +1,30 @@
 import React, { useState, Fragment } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, User } from 'lucide-react';
+import { Menu, User, X } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import AuthModal from './auth/AuthModal';
 
 export default function Navbar() {
   const { user, profile, isAdmin, signOut } = useAuthStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleProfileClick = () => {
     if (user) {
       navigate(`/user/${user.id}`);
+      setIsMobileMenuOpen(false);
     }
   };
 
   const handleAuthClose = () => {
     setShowAuthModal(false);
+  };
+
+  const handleSignOut = () => {
+    signOut();
+    navigate('/');
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -76,10 +84,7 @@ export default function Navbar() {
                           <span>Profile</span>
                         </button>
                         <button
-                          onClick={() => {
-                            signOut();
-                            navigate('/');
-                          }}
+                          onClick={handleSignOut}
                           className="w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800/50 flex items-center space-x-2 transition-colors duration-150"
                         >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,11 +107,99 @@ export default function Navbar() {
               </div>
             </div>
             <div className="md:hidden">
-              <button className="text-gray-300 hover:text-white">
-                <Menu className="h-6 w-6" />
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-gray-300 hover:text-white p-2 rounded-md"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
               </button>
             </div>
           </div>
+          
+          {/* Mobile menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden">
+              <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <Link 
+                  to="/" 
+                  className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Home
+                </Link>
+                <Link 
+                  to="/projects" 
+                  className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Projects
+                </Link>
+                <Link 
+                  to="/blog" 
+                  className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Blog
+                </Link>
+              </div>
+              {user ? (
+                <div className="pt-4 pb-3 border-t border-gray-800">
+                  <div className="flex items-center px-5">
+                    <div className="flex-shrink-0">
+                      <img
+                        className="h-10 w-10 rounded-full"
+                        src={profile?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || '')}`}
+                        alt={profile?.name || user.email || ''}
+                      />
+                    </div>
+                    <div className="ml-3">
+                      <div className="text-base font-medium text-white">{profile?.name || user.email}</div>
+                      <div className="text-sm font-medium text-gray-400">{user.email}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 px-2 space-y-1">
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800/50"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Admin Dashboard
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleProfileClick}
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800/50"
+                    >
+                      Profile
+                    </button>
+                    <button
+                      onClick={handleSignOut}
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-400 hover:text-red-300 hover:bg-gray-800/50"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="pt-4 pb-3 border-t border-gray-800">
+                  <button
+                    onClick={() => {
+                      setShowAuthModal(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800/50"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </nav>
       {/* 登录弹窗 */}
