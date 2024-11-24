@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PROJECT_CATEGORIES } from '../projects/ProjectSidebar';
 import { useAuthStore } from '../../store/authStore';
 import { projectService } from '../../lib/supabase';
@@ -33,7 +33,7 @@ const ProjectUploadForm: React.FC<ProjectUploadFormProps> = ({
   initialData
 }) => {
   const { user } = useAuthStore();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<Project>({
@@ -51,21 +51,20 @@ const ProjectUploadForm: React.FC<ProjectUploadFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submission started');
+    
+    if (!user) {
+      toast.error('请先登录');
+      return;
+    }
 
     try {
-      if (!user) {
-        toast.error('Please sign in to submit a project');
-        return;
-      }
-
       if (formData.categories.length === 0) {
         toast.error('Please select at least one category');
         return;
       }
 
-      console.log('Setting isSubmitting to true');
-      setIsSubmitting(true);
+      setLoading(true);
+      console.log('Starting project submission...');
 
       const projectData: ProjectSubmission = {
         ...formData,
@@ -109,11 +108,11 @@ const ProjectUploadForm: React.FC<ProjectUploadFormProps> = ({
       if (onClose) {
         onClose();
       }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast.error('An unexpected error occurred');
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      toast.error(error.message || 'Failed to submit project');
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -164,7 +163,7 @@ const ProjectUploadForm: React.FC<ProjectUploadFormProps> = ({
         <button 
           onClick={onClose} 
           className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
-          disabled={isSubmitting}
+          disabled={loading}
         >
           <X className="h-5 w-5" />
         </button>
@@ -279,16 +278,16 @@ const ProjectUploadForm: React.FC<ProjectUploadFormProps> = ({
               type="button"
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-md border border-gray-600 hover:bg-gray-600 transition-colors"
-              disabled={isSubmitting}
+              disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
               className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors inline-flex items-center disabled:opacity-70"
-              disabled={isSubmitting}
+              disabled={loading}
             >
-              {isSubmitting ? (
+              {loading ? (
                 <>
                   <Loader className="animate-spin -ml-0.5 mr-2 h-4 w-4" />
                   Submitting...

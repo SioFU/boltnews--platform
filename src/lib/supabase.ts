@@ -281,19 +281,21 @@ const projectService = {
     while (retries > 0) {
       try {
         console.log(`Attempt ${4 - retries} to submit project...`);
-        const session = await ensureAuthInitialized();
         
-        if (!session?.user) {
+        // 获取当前用户
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError || !user) {
           const error = new Error('No authenticated user found');
           console.error(error);
           throw error;
         }
 
-        console.log('Using authenticated user:', session.user.id);
+        console.log('Using authenticated user:', user.id);
 
         const projectToSave = {
           ...projectData,
-          user_id: session.user.id,
+          user_id: user.id,
           status: 'pending' as ProjectStatus,
           featured: false
         };

@@ -25,6 +25,8 @@ interface AuthState {
   signOut: () => Promise<void>;
   loadUserProfile: (userId: string) => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  setUser: (user: User | null) => void;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -110,65 +112,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initialize: async () => {
-    console.log('Initializing auth store...');
-    if (get().initialized) {
-      console.log('Auth store already initialized');
-      set({ loading: false });
-      return;
-    }
-
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('Initial session:', { 
-        hasSession: !!session, 
-        userId: session?.user?.id,
-        error: sessionError?.message 
-      });
+      set({ loading: true });
+      console.log('Starting auth initialization...');
       
-      if (sessionError) throw sessionError;
+      // 使用 ensureAuthInitialized 确保认证状态
+      const session = await ensureAuthInitialized();
       
       if (session?.user) {
-        console.log('Setting initial user:', session.user.id);
         set({ user: session.user });
+        // 加载用户资料和管理员状态
         await get().loadUserProfile(session.user.id);
         await get().checkAdmin();
+      } else {
+        set({ user: null, profile: null, isAdmin: false });
       }
-
+      
       // 设置认证状态变化监听器
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('Auth state changed:', { 
-          event, 
-          userId: session?.user?.id,
-          hasSession: !!session 
-        });
-        
-        if (event === 'INITIAL_SESSION') {
-          // 忽略初始会话事件，因为我们已经在上面处理过了
-          return;
-        }
+        console.log('Auth state changed:', { event, userId: session?.user?.id });
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
-            console.log('Updating user on auth change:', session.user.id);
             set({ user: session.user });
             await get().loadUserProfile(session.user.id);
             await get().checkAdmin();
           }
         } else if (event === 'SIGNED_OUT') {
-          console.log('User signed out');
           set({ user: null, profile: null, isAdmin: false });
         }
       });
-
-      return () => {
-        subscription.unsubscribe();
-      };
-    } catch (error) {
-      console.error('认证初始化失败:', error);
-      toast.error('认证初始化失败');
-    } finally {
+      
+      set({ initialized: true });
       console.log('Auth initialization completed');
-      set({ loading: false, initialized: true });
+    } catch (error) {
+      console.error('Auth initialization failed:', error);
+      set({ user: null, profile: null, isAdmin: false });
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -223,5 +204,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Logout failed:', error);
       toast.error('Failed to logout');
     }
+  },
+
+  setUser: (user: User | null) => {
+    set({ user });
+  },
+
+  logout: async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      set({ user: null, profile: null, isAdmin: false });
+      toast.success('Successfully logged out');
+    } catch (error: any) {
+      console.error('Logout failed:', error);
+      toast.error('Failed to logout');
+    }
   }
 }));
+
+// Helper function to ensure auth initialization
+async function ensureAuthInitialized() {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  return session;
+}
