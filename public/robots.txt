@@ -1,19 +1,19 @@
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://boltnews.com/sitemap.xml
-
-# Crawl-delay
-Crawl-delay: 10
-
-# Disallow admin and api routes
-Disallow: /admin/
-Disallow: /api/
-Disallow: /private/
-
-# Allow important directories
+# 重要目录
 Allow: /projects/
 Allow: /tools/
 Allow: /blog/
 Allow: /about/
+
+# 管理和私有路由
+Disallow: /admin/
+Disallow: /admin-login
+Disallow: /admin-signup
+
+# Sitemap
+Sitemap: https://boltnews.xyz/sitemap.xml
+
+# 爬虫抓取频率
+Crawl-delay: 1
