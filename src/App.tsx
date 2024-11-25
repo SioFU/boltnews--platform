@@ -32,21 +32,27 @@ export default function App() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    console.log('Starting app initialization...');
-    
     const init = async () => {
       try {
+        console.log('Starting app initialization...');
+        
+        // 初始化 GA
+        if (MEASUREMENT_ID) {
+          console.log('Initializing Google Analytics...');
+          initGA(MEASUREMENT_ID);
+          console.log('Google Analytics initialized');
+        } else {
+          console.warn('Google Analytics Measurement ID not found');
+        }
+
+        // 初始化 Auth
         console.log('Initializing auth...');
         await initialize();
-        
-        if (!mounted) return;
         console.log('Auth initialized');
 
+        // 初始化数据库
         console.log('Initializing database...');
         const initialized = await initializeSupabase();
-        
-        if (!mounted) return;
         setDbInitialized(initialized);
         
         if (!initialized) {
@@ -54,33 +60,17 @@ export default function App() {
         } else {
           console.log('Database initialized successfully');
         }
+
+        setInitialized(true);
       } catch (error) {
         console.error('Initialization error:', error);
       } finally {
-        if (mounted) {
-          console.log('App initialization completed');
-          setInitializing(false);
-        }
+        setInitializing(false);
       }
     };
 
     init();
-    
-    return () => {
-      mounted = false;
-    };
   }, [initialize]);
-
-  useEffect(() => {
-    const init = async () => {
-      if (MEASUREMENT_ID) {
-        initGA(MEASUREMENT_ID);
-      }
-      await initializeSupabase();
-      setInitialized(true);
-    };
-    init();
-  }, []);
 
   const handleOpenUploadForm = () => {
     setIsUploadFormVisible(true);
