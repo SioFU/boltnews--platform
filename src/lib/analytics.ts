@@ -4,7 +4,20 @@ import ReactGA from 'react-ga4';
 export const initGA = (measurementId: string) => {
   console.log('Initializing GA4 with measurement ID:', measurementId);
   try {
-    ReactGA.initialize(measurementId);
+    ReactGA.initialize(measurementId, {
+      gaOptions: {
+        debug_mode: true,
+        send_page_view: true
+      },
+      testMode: process.env.NODE_ENV !== 'production'
+    });
+    
+    // 发送初始页面访问
+    ReactGA.send({
+      hitType: "pageview",
+      page: window.location.pathname + window.location.search
+    });
+    
     console.log('GA4 initialized successfully');
   } catch (error) {
     console.error('Failed to initialize GA4:', error);
@@ -14,9 +27,13 @@ export const initGA = (measurementId: string) => {
 // 页面访问跟踪
 export const logPageView = () => {
   try {
-    const path = window.location.pathname;
+    const path = window.location.pathname + window.location.search;
     console.log('Logging pageview for path:', path);
-    ReactGA.send({ hitType: "pageview", page: path });
+    ReactGA.send({
+      hitType: "pageview",
+      page: path,
+      title: document.title
+    });
     console.log('Pageview logged successfully');
   } catch (error) {
     console.error('Failed to log pageview:', error);
