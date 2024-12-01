@@ -31,8 +31,19 @@ export default function Projects() {
       let query = supabase
         .from('projects')
         .select(`
-          *,
-          users:user_id (
+          id,
+          name,
+          description,
+          project_url,
+          thumbnail_url,
+          categories,
+          status,
+          featured,
+          created_at,
+          updated_at,
+          likes,
+          comments,
+          user:user_id (
             id,
             email,
             name,
@@ -57,13 +68,13 @@ export default function Projects() {
 
       const formattedProjects = (projectsData || []).map(project => ({
         ...project,
-        user: project.users ? {
-          id: project.users.id,
-          email: project.users.email,
-          username: project.users.name,
-          avatar_url: project.users.avatar,
+        user: {
+          id: project.user.id,
+          email: project.user.email,
+          username: project.user.name,
+          avatar_url: project.user.avatar,
           role: 'user'
-        } : undefined
+        }
       }));
 
       console.log('Projects loaded:', formattedProjects);

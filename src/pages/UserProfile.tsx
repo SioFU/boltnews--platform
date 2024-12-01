@@ -20,6 +20,7 @@ export const UserProfile = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
 
   const { user: currentUser } = useAuthStore();
   const isOwner = currentUser?.id === userId;
@@ -78,18 +79,27 @@ export const UserProfile = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', project.id);
+      setDeletingProjectId(project.id);
 
-      if (error) throw error;
+      const { error } = await projectService.deleteProject(project.id);
 
-      setProjects(projects.filter(p => p.id !== project.id));
+      if (error) {
+        console.error('Error deleting project:', error);
+        toast.error(error.message || 'Failed to delete project');
+        return;
+      }
+
+      // 立即从本地状态中移除项目
+      setProjects(currentProjects => currentProjects.filter(p => p.id !== project.id));
       toast.success('Project deleted successfully');
-    } catch (error) {
+      
+      // 在后台刷新项目列表
+      fetchUserAndProjects().catch(console.error);
+    } catch (error: any) {
       console.error('Error deleting project:', error);
-      toast.error('Failed to delete project');
+      toast.error(error.message || 'Failed to delete project');
+    } finally {
+      setDeletingProjectId(null);
     }
   };
 
@@ -224,6 +234,7 @@ export const UserProfile = () => {
                   project={project}
                   onEdit={isOwner ? handleEdit : undefined}
                   onDelete={isOwner ? handleDelete : undefined}
+                  isDeleting={deletingProjectId === project.id}
                 />
               ))}
             </div>
@@ -233,6 +244,7 @@ export const UserProfile = () => {
               onEdit={isOwner ? handleEdit : undefined}
               onDelete={isOwner ? handleDelete : undefined}
               isOwner={isOwner}
+              isDeleting={deletingProjectId}
             />
           )}
         </div>

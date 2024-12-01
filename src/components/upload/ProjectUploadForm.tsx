@@ -49,11 +49,42 @@ const ProjectUploadForm: React.FC<ProjectUploadFormProps> = ({
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 1. 验证文件类型和大小
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Only PNG, JPEG, GIF and WebP images are allowed.');
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('File size too large. Maximum size is 5MB.');
+      return;
+    }
+
+    // 2. 创建本地预览
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (reader.result) {
+        setUploadedImage(reader.result as string);  // 仅用于预览
+      }
+    };
+    reader.readAsDataURL(file);
+
+    // 3. 保存文件对象等待提交
+    setSelectedFile(file);
+    setFormData(prev => ({ ...prev, thumbnail_url: null }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user) {
-      toast.error('请先登录');
+      toast.error('Please login first');
       return;
     }
 
@@ -64,53 +95,46 @@ const ProjectUploadForm: React.FC<ProjectUploadFormProps> = ({
       }
 
       setLoading(true);
-      console.log('Starting project submission...');
 
-      const projectData: ProjectSubmission = {
-        ...formData,
-        thumbnail_url: uploadedImage
-      };
-
-      console.log('Prepared project data:', projectData);
-
-      if (selectedFile && !uploadedImage) {
-        console.log('Uploading image...');
+      // 1. 处理图片上传
+      let finalImageUrl = formData.thumbnail_url;
+      if (selectedFile) {
         const { data: imageUrl, error: uploadError } = await projectService.uploadProjectImage(selectedFile);
         
         if (uploadError) {
           console.error('Image upload error:', uploadError);
-          toast.error('Failed to upload image');
+          toast.error(uploadError.message || 'Failed to upload image');
           return;
         }
         
-        if (imageUrl) {
-          console.log('Image uploaded successfully:', imageUrl);
-          projectData.thumbnail_url = imageUrl;
+        if (!imageUrl) {
+          toast.error('Failed to get image URL');
+          return;
         }
+
+        finalImageUrl = imageUrl;
       }
 
-      console.log('Submitting project to service...');
-      const { data, error } = await projectService.submitProject(projectData);
+      // 2. 准备项目数据
+      const projectData: ProjectSubmission = {
+        ...formData,
+        thumbnail_url: finalImageUrl
+      };
 
-      if (error) {
-        console.error('Project submission error:', error);
-        toast.error(error.message || 'Failed to submit project');
-        return;
-      }
+      // 3. 提交或更新项目
+      const { data, error } = initialData?.id
+        ? await projectService.updateProject(initialData.id, projectData)
+        : await projectService.submitProject(projectData);
 
-      console.log('Project submitted successfully:', data);
-      toast.success('Project submitted successfully!');
+      if (error) throw error;
+
+      toast.success(initialData ? 'Project updated successfully!' : 'Project submitted successfully!');
       
-      if (onSuccess) {
-        onSuccess(data);
-      }
-      
-      if (onClose) {
-        onClose();
-      }
+      if (onSuccess) onSuccess(data);
+      if (onClose) onClose();
     } catch (error: any) {
-      console.error('Submission error:', error);
-      toast.error(error.message || 'Failed to submit project');
+      console.error('Error in project operation:', error);
+      toast.error(error.message || 'Failed to process project');
     } finally {
       setLoading(false);
     }
@@ -123,38 +147,6 @@ const ProjectUploadForm: React.FC<ProjectUploadFormProps> = ({
         : [...prev.categories, categoryId];
       return { ...prev, categories };
     });
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // 验证文件类型
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Invalid file type. Only PNG, JPEG, GIF and WebP images are allowed.');
-      return;
-    }
-
-    // 验证文件大小 (5MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error('File size too large. Maximum size is 5MB.');
-      return;
-    }
-
-    // 显示本地预览
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (reader.result) {
-        setUploadedImage(reader.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
-
-    // 保存选中的文件，但不立即上传
-    setSelectedFile(file);
-    setFormData(prev => ({ ...prev, thumbnail_url: null }));  // 清除之前的 URL
   };
 
   return (

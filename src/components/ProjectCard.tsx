@@ -48,7 +48,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   };
 
   const renderImage = () => {
-    if (!project.thumbnail_url || imageError) {
+    // 验证 thumbnail_url 是否为有效的 URL
+    const isValidUrl = (url: string) => {
+      try {
+        new URL(url);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (!project.thumbnail_url || !isValidUrl(project.thumbnail_url) || imageError) {
       return (
         <div className={`w-full h-full ${getPlaceholderColor(project.name)} flex items-center justify-center`}>
           <span className="text-white text-xl font-bold opacity-50">
@@ -66,8 +76,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           className={`w-full h-full object-cover transition-opacity duration-300 ${
             imageLoading ? 'opacity-0' : 'opacity-100'
           }`}
-          onLoad={() => setImageLoading(false)}
+          onLoad={() => {
+            setImageLoading(false);
+            setImageError(false);
+          }}
           onError={() => {
+            console.error(`Failed to load image: ${project.thumbnail_url}`);
             setImageLoading(false);
             setImageError(true);
           }}

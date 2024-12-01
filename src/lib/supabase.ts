@@ -184,92 +184,140 @@ function frontendToDB(project: ProjectSubmission): Partial<DBProject> {
 }
 
 const projectService = {
-  async uploadProjectImage(file: File) {
+  // 从图片URL中提取存储路径
+  _getStoragePathFromUrl(url: string): string | null {
     try {
-      // 验证文件是否存在
-      if (!file) {
-        throw new Error('No file provided');
+      const storageUrl = new URL(url);
+      // 直接从 URL 中提取文件名
+      const fileName = storageUrl.pathname.split('/').pop();
+      return fileName ? `projects/${fileName}` : null;
+    } catch {
+      return null;
+    }
+  },
+
+  // 删除存储中的图片
+  async _deleteStorageImage(url: string | null): Promise<{ error: Error | null }> {
+    if (!url) {
+      console.log('No image URL provided for deletion');
+      return { error: null };
+    }
+    
+    const path = this._getStoragePathFromUrl(url);
+    if (!path) {
+      console.log('Could not extract path from URL:', url);
+      return { error: null };
+    }
+
+    console.log('Attempting to delete image at path:', path);
+
+    try {
+      const { error } = await supabase.storage
+        .from('project-images')
+        .remove([path]);
+      
+      if (error) {
+        console.error('Error deleting image from storage:', error);
+        return { error };
+      }
+      
+      console.log('Successfully deleted image from storage');
+      return { error: null };
+    } catch (error) {
+      console.error('Error in _deleteStorageImage:', error);
+      return { error: error as Error };
+    }
+  },
+
+  // 删除项目及其图片
+  async deleteProject(id: string): Promise<{ error: Error | null }> {
+    console.log('Starting project deletion process for ID:', id);
+
+    try {
+      // 1. 获取项目信息
+      const { data: project, error: fetchError } = await supabase
+        .from('projects')
+        .select('thumbnail_url')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching project:', fetchError);
+        throw fetchError;
       }
 
-      // 验证文件类型
+      console.log('Project data retrieved:', project);
+
+      // 2. 先删除项目数据
+      console.log('Deleting project data...');
+      const { error: deleteError } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) {
+        console.error('Error deleting project data:', deleteError);
+        throw deleteError;
+      }
+
+      // 3. 如果有图片，尝试删除图片（即使失败也不影响项目删除）
+      if (project?.thumbnail_url) {
+        console.log('Attempting to delete associated image...');
+        await this._deleteStorageImage(project.thumbnail_url)
+          .catch(error => {
+            // 只记录错误，不抛出
+            console.error('Error deleting image, but project was deleted:', error);
+          });
+      }
+
+      console.log('Project deletion completed successfully');
+      return { error: null };
+    } catch (error) {
+      console.error('Error in deleteProject:', error);
+      return { error: error as Error };
+    }
+  },
+
+  // 上传项目图片
+  async uploadProjectImage(file: File): Promise<{ data: string | null; error: Error | null }> {
+    try {
+      // 1. 验证文件
+      if (!file) throw new Error('No file provided');
+
       const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
       if (!allowedTypes.includes(file.type)) {
         throw new Error('Invalid file type. Only PNG, JPEG, GIF and WebP images are allowed.');
       }
 
-      // 验证文件大小 (5MB)
-      const maxSize = 5 * 1024 * 1024;
+      const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
         throw new Error('File size too large. Maximum size is 5MB.');
       }
 
-      // 验证用户是否已登录
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error('User authentication error:', userError);
-        throw new Error('Authentication error: ' + userError.message);
-      }
-      if (!user) {
-        throw new Error('You must be logged in to upload images');
-      }
+      // 2. 生成文件路径
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `projects/${fileName}`;
 
-      const fileExt = file.name.split('.').pop()?.toLowerCase();
-      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-
-      console.log('Attempting to upload file:', {
-        bucket: 'project-images',
-        path: filePath,
-        size: file.size,
-        type: file.type
-      });
-
-      // 上传文件
-      const { error: uploadError, data: uploadData } = await supabase.storage
+      // 3. 上传文件
+      const { error: uploadError } = await supabase.storage
         .from('project-images')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
         });
 
-      if (uploadError) {
-        console.error('Upload error:', {
-          code: uploadError.statusCode,
-          message: uploadError.message,
-          details: uploadError
-        });
-        if (uploadError.statusCode === '403') {
-          throw new Error('Permission denied. Please make sure you are logged in and have the correct permissions.');
-        }
-        throw new Error(`Upload failed: ${uploadError.message}`);
-      }
+      if (uploadError) throw uploadError;
 
-      console.log('File uploaded successfully:', uploadData);
-
-      // 获取公共 URL
-      const { data: urlData } = supabase.storage
+      // 4. 获取公共URL
+      const { data: { publicUrl } } = supabase.storage
         .from('project-images')
         .getPublicUrl(filePath);
 
-      if (!urlData?.publicUrl) {
-        throw new Error('Failed to get public URL for uploaded image');
-      }
-
-      console.log('Generated public URL:', urlData.publicUrl);
-
-      return { data: { publicUrl: urlData.publicUrl }, error: null };
-    } catch (error: any) {
-      console.error('Error in uploadProjectImage:', {
-        message: error.message,
-        details: error
-      });
-      return { 
-        data: null, 
-        error: {
-          message: error.message || 'Failed to upload image',
-          details: error.details || error
-        }
-      };
+      return { data: publicUrl, error: null };
+    } catch (error) {
+      console.error('Error in uploadProjectImage:', error);
+      return { data: null, error: error as Error };
     }
   },
 
