@@ -3,7 +3,6 @@ Allow: /
 
 # 重要目录
 Allow: /projects/
-Allow: /tools/
 Allow: /blog/
 Allow: /about/
 
@@ -11,6 +10,9 @@ Allow: /about/
 Disallow: /admin/
 Disallow: /admin-login
 Disallow: /admin-signup
+Disallow: /private/
+Disallow: /user-data/
+Disallow: /config/
 
 # Sitemap
 Sitemap: https://boltnews.xyz/sitemap.xml
