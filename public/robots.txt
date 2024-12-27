@@ -15,7 +15,7 @@ Disallow: /user-data/
 Disallow: /config/
 
 # Sitemap
-Sitemap: https://boltnews.xyz/sitemap.xml
+Sitemap: https://www.boltnews.xyz/sitemap.xml
 
 # 爬虫抓取频率
 Crawl-delay: 1

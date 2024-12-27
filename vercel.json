@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/sitemap.xml",
-      "destination": "/public/sitemap.xml"
+      "destination": "/sitemap.xml"
     },
     {
       "source": "/robots.txt",
-      "destination": "/public/robots.txt"
+      "destination": "/robots.txt"
     },
     {
       "source": "/(.*)",
