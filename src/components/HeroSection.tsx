@@ -29,7 +29,7 @@ export default function HeroSection() {
     <section className="pt-32 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-900 to-gray-950">
       <div className="max-w-7xl mx-auto text-center">
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-          Discover AI-Powered<br />Web Applications
+          Bolt AI - Discover AI-Powered<br />Web Applications
         </h1>
         <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
           Explore amazing projects built with AI assistance. Share your creations and get inspired by the community.

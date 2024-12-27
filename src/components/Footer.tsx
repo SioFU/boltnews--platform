@@ -8,9 +8,9 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">About BoltNews</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">About Bolt AI - BoltNews</h3>
             <p className="text-gray-400">
-              BoltNews is your gateway to discovering innovative AI-powered projects. 
+              BoltNews is your gateway to discovering innovative AI-powered projects and Bolt AI tools. 
               Share your creations, connect with fellow developers, and stay updated 
               with the latest in AI technology.
             </p>
